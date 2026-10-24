@@ -11,6 +11,7 @@ GAME_EXE = "valorant-win64-shipping.exe"
 GAME_WIDTH = 1440  # largeur de la résolution 4:3 utilisée dans Valorant
 EVENT_SYSTEM_FOREGROUND = 0x0003
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+SW_SHOWMINNOACTIVE = 7  # réduit la fenêtre sans lui redonner le focus
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
@@ -19,6 +20,7 @@ kernel32.CloseHandle.argtypes = [wintypes.HANDLE]
 kernel32.QueryFullProcessImageNameW.argtypes = [
     wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
 user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+user32.ShowWindowAsync.argtypes = [wintypes.HWND, ctypes.c_int]
 user32.SetProcessDPIAware()  # sinon GetSystemMetrics renvoie une largeur mise à l'échelle
 
 WinEventProc = ctypes.WINFUNCTYPE(None, wintypes.HANDLE, wintypes.DWORD, wintypes.HWND,
@@ -38,9 +40,18 @@ def exe_name(hwnd):
     return os.path.basename(buf.value).lower()
 
 
+game_hwnd = None
+
+
 @WinEventProc
 def on_foreground(hook, event, hwnd, *_):
-    if user32.GetSystemMetrics(0) == GAME_WIDTH and exe_name(hwnd) != GAME_EXE:
+    global game_hwnd
+    if exe_name(hwnd) == GAME_EXE:
+        game_hwnd = hwnd
+    elif user32.GetSystemMetrics(0) == GAME_WIDTH:
+        if game_hwnd:
+            # avec deux écrans le jeu reste affiché ~0.5 s avant de se réduire tout seul : on le réduit nous-mêmes
+            user32.ShowWindowAsync(game_hwnd, SW_SHOWMINNOACTIVE)
         user32.ChangeDisplaySettingsW(None, 0)  # remet la résolution enregistrée dans Windows
 
 
