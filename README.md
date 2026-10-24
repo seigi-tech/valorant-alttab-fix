@@ -7,12 +7,13 @@ before going away.
 This tiny background program fixes it. As soon as you leave Valorant, it hides the game and puts your
 desktop back to its normal resolution, without waiting for the game to do it.
 
-Measured alt-tab from Valorant to Chrome on the main monitor:
+Measured over 9 alt-tabs from Valorant to Chrome on the main monitor, with two monitors:
 
-|                         | Without        | With     |
-|-------------------------|----------------|----------|
-| Game hidden             | 0.5 – 2 s      | ~10 ms   |
-| Desktop back to 16:9    | sometimes never | ~200 ms |
+|                                  | Without                     | With                  |
+|----------------------------------|-----------------------------|-----------------------|
+| Desktop back to its resolution   | 1 / 9 (stays 4:3 otherwise) | 9 / 9, in ~200 ms     |
+| Game hidden, usual case          | ~10 ms                      | ~10 ms                |
+| Game hidden, when the game lags  | 0.3 – 2 s                   | 0.25 – 0.35 s         |
 
 The ~200 ms left is the resolution change itself, which no program can speed up.
 
