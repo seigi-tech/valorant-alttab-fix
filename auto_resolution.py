@@ -5,6 +5,7 @@ Lancer sans console : pythonw auto_resolution.py
 """
 import ctypes
 import os
+import time
 from ctypes import wintypes
 
 GAME_EXE = "valorant-win64-shipping.exe"
@@ -21,6 +22,7 @@ kernel32.QueryFullProcessImageNameW.argtypes = [
     wintypes.HANDLE, wintypes.DWORD, wintypes.LPWSTR, ctypes.POINTER(wintypes.DWORD)]
 user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
 user32.ShowWindowAsync.argtypes = [wintypes.HWND, ctypes.c_int]
+user32.IsIconic.argtypes = [wintypes.HWND]
 user32.SetProcessDPIAware()  # sinon GetSystemMetrics renvoie une largeur mise à l'échelle
 
 WinEventProc = ctypes.WINFUNCTYPE(None, wintypes.HANDLE, wintypes.DWORD, wintypes.HWND,
@@ -48,10 +50,15 @@ def on_foreground(hook, event, hwnd, *_):
     global game_hwnd
     if exe_name(hwnd) == GAME_EXE:
         game_hwnd = hwnd
-    elif user32.GetSystemMetrics(0) == GAME_WIDTH:
-        if game_hwnd:
-            # avec deux écrans le jeu reste affiché ~0.5 s avant de se réduire tout seul : on le réduit nous-mêmes
-            user32.ShowWindowAsync(game_hwnd, SW_SHOWMINNOACTIVE)
+        return
+    if game_hwnd and not user32.IsIconic(game_hwnd):
+        # avec deux écrans le jeu reste affiché ~0.5 s avant de se réduire tout seul : on le réduit nous-mêmes,
+        # et on attend qu'il le soit, sinon il traite d'abord le changement de résolution (~1.4 s)
+        user32.ShowWindowAsync(game_hwnd, SW_SHOWMINNOACTIVE)
+        deadline = time.perf_counter() + 0.5
+        while not user32.IsIconic(game_hwnd) and time.perf_counter() < deadline:
+            time.sleep(0.002)
+    if user32.GetSystemMetrics(0) == GAME_WIDTH:
         user32.ChangeDisplaySettingsW(None, 0)  # remet la résolution enregistrée dans Windows
 
 
